@@ -185,12 +185,12 @@ if trade
             strategy.entry("s3", strategy.long)
             strategy.exit("xs3", "s3", profit=pi, loss=sl)
             s3_done = true   
-     // breakout only makes sense if s3 not already under test and holding
+        // breakout only makes sense if s3 not already under test and holding
         if takeSzbrk and open < slow and close < o_low and ds3 > o_low and not szbrk_done 
             strategy.entry("szbrk", strategy.short)
             strategy.exit("xszbrk", "szbrk", profit=pi, loss=sl)
-            szbrk_done := true        
-   
+            szbrk_done := true   
+
 et = time(timeframe.period, exitblock)
 exit = na(et) ? false : true
 if exit and strategy.position_size != 0
