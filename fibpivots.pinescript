@@ -1,0 +1,185 @@
+//@version=2
+study(title="Fibonacci Pivots", shorttitle="fp", overlay=true)
+sd = input(true, title="Show D Pivots?")
+sdrs1 = input(true, title="Show DRS1 Pivots?")
+sdrs2 = input(true, title="Show DRS2 Pivots?")
+sdrs3 = input(true, title="Show DRS3 Pivots?")
+sessionblock = input("0830-0930", "session time block")
+showRev = input(true, "Show Reversals?")
+
+//Weekly Pivots 
+sw = input(false, title="Show W Pivots?")
+swrs1 = input(false, title="Show wRS1 Pivots?")
+swrs2 = input(false, title="Show wRS2 Pivots?")
+swrs3 = input(false, title="Show wRS3 Pivots?")
+rw = input('W', title="Week")
+
+//Monthly Pivots 
+sm = input(false, title="Show M Pivots?")
+rm = input('M', title="Month")
+mtime_pivot = security(tickerid, rm, pivot[1]) 
+plot(sm and mtime_pivot ? mtime_pivot : na, title="Monthly Pivot", style=cross, color=#FFF333,linewidth=2) 
+
+
+//Equations
+pivot = (high + low + close ) / 3.0 
+R1 = pivot + 0.382 * (high - low)
+S1 = pivot - 0.382 * (high - low)
+R2 = pivot + 0.618 * (high - low)
+S2 = pivot - 0.618 * (high - low)
+R3 = pivot + (high - low)
+S3 = pivot - (high - low)
+
+mid_ = high - (high - low)/2
+
+// Daily line breaks
+dopen = security(tickerid, "D", open)
+
+// when to plot
+is_newbar1(res) =>
+    t = time(res)
+    change(t) != 0 ? 1 : 0
+t = time(period, "0830-1400")
+trade = na(t) ? false : true
+// Color
+dcolor= dopen == dopen[1] and trade ?  gray : na
+dcolorR1= dopen == dopen[1] and trade ? red : na
+dcolorS1= dopen == dopen[1] and trade ? lime : na
+dcolor2= dopen == dopen[1] and trade ? fuchsia : na
+
+//Daily Pivots 
+dtime_pivot = security(tickerid, "D", pivot[1])
+dtime_r3 = security(tickerid, "D", R3[1])
+dtime_r2 = security(tickerid, "D", R2[1]) 
+dtime_r1 = security(tickerid, "D", R1[1]) 
+dtime_s1 = security(tickerid, "D", S1[1]) 
+dtime_s2 = security(tickerid, "D", S2[1]) 
+dtime_s3 = security(tickerid, "D", S3[1])
+mid = security(tickerid, "D", mid_[0])
+//PLotting
+offs_daily = 0
+plot(sd and dtime_pivot ? dtime_pivot : na, title="Daily Pivot Point", color=dcolor, linewidth=2,offset=offs_daily)
+plot(sdrs3 and dtime_r3 and close > dopen ? dtime_r3 : na, title="Daily R3",color=dcolorR1, linewidth=3,offset=offs_daily, transp=50)
+plot(sdrs2 and dtime_r2 and close > dopen ? dtime_r2 : na, title="Daily R2",color=dcolorR1, linewidth=2,offset=offs_daily, transp=50)
+plot(sdrs1 and dtime_r1 and close > dopen ? dtime_r1 : na, title="Daily R1",color=dcolorR1, linewidth=1,offset=offs_daily, transp=50)
+plot(sdrs1 and dtime_s1 and close <= dopen ? dtime_s1 : na, title="Daily S1",color=dcolorS1, linewidth=1,offset=offs_daily, transp=50)
+plot(sdrs2 and dtime_s2 and close <= dopen ? dtime_s2 : na, title="Daily S2",color=dcolorS1, linewidth=2,offset=offs_daily, transp=50)
+plot(sdrs3 and dtime_s3 and close <= dopen ? dtime_s3 : na, title="Daily S3",color=dcolorS1, linewidth=3,offset=offs_daily, transp=50)
+plot(mid ? mid : na, title="Mid",color=dcolor2, linewidth=2,offset=offs_daily)
+
+
+wtime_pivot = security(tickerid, rw, pivot[1]) 
+wtime_r1 = security(tickerid, rw, R1[1]) 
+wtime_r2 = security(tickerid, rw, R2[1]) 
+wtime_r3 = security(tickerid, rw, R3[1]) 
+wtime_s1 = security(tickerid, rw, S1[1]) 
+wtime_s2 = security(tickerid, rw, S2[1]) 
+wtime_s3 = security(tickerid, rw, S3[1]) 
+ 
+plot(sw and wtime_pivot ? wtime_pivot : na, title="Weekly Pivot", style=cross, color=#33E9FF,linewidth=2) 
+isClosedHigher(p, level) =>  closedHigher = p >= level and sw ? level : na
+plot(isClosedHigher(close, wtime_pivot), color=#00ffaa, linewidth=2, style=circles)
+isClosedLower(p, level) =>  closedLower = p < level and sw ? level : na
+plot(isClosedLower(close, wtime_pivot), color=#ff0000, linewidth=2, style=circles)
+
+plot(swrs1 and wtime_r1 ? wtime_r1 : na, title="Weekly R1", style=circles, color=#33E9FF,linewidth=1) 
+plot(swrs2 and wtime_r2 ? wtime_r2 : na, title="Weekly R2",style=circles, color=#33E9FF,linewidth=2) 
+plot(swrs3 and wtime_r3 ? wtime_r3 : na, title="Weekly R3",style=circles, color=#33E9FF,linewidth=3) 
+plot(swrs1 and wtime_s1 ? wtime_s1 : na, title="Weekly S1",style=circles, color=#33E9FF,linewidth=1) 
+plot(swrs2 and wtime_s2 ? wtime_s2 : na, title="Weekly S2",style=circles, color=#33E9FF,linewidth=2) 
+plot(swrs3 and wtime_s3 ? wtime_s3 : na, title="Weekly S3",style=circles, color=#33E9FF,linewidth=3) 
+
+// Bar Colors and signals
+ReversalLong = low < low[1] and close > high[1] and open < close[1]
+ReversalShort = high > high[1] and close < low[1] and open > open[1]
+plotshape(showRev ? ReversalLong : na, title="ReversalLong", location=location.belowbar, color=lime, style=shape.arrowup, text="BUY")
+plotshape(showRev ? ReversalShort : na, title="ReversalShort", location=location.abovebar, color=red, style=shape.arrowdown, text="SELL")
+
+
+//length = input(200, minval=1)
+//srcfb = input(hlc3, title="Source")
+
+showfb = input(true, title="dopen basis")
+showfb_u236 = input(true, title="fib .236 upper")
+showfb_u382 = input(true, title="fib .382 upper")
+showfb_u5 = input(true, title="fib .5 upper")
+showfb_u618 = input(true, title="fib .618 upper")
+showfb_u764 = input(true, title="fib .764 upper")
+showfb_shigh = input(true, title="shigh")
+showfb_slow = input(true, title="slow")
+
+
+// solution to line connected across sessions
+dcolor3= dopen != dopen[1] ? na : white
+dcolor4= dopen != dopen[1] ? na : orange
+plot(dopen, color=dcolor4, linewidth=1)
+
+dcolor5= dopen != dopen[1] ? na : red
+dcolor6= dopen != dopen[1] ? na : green
+
+// Session high and low with retracement levels (buy and sell zones)
+// note that this cannot be a rolling high- it must be from before the opening swing
+onightblock = input("1700-0830")
+ot = time(period, onightblock)
+onight = na(ot) ? false : true
+
+// Session high and low with retracement levels (buy and sell zones)
+shigh = is_newbar1("D") ? high : (high > shigh[1] and onight ? high : nz(shigh[1], high))
+slow  = is_newbar1("D") ? low : (low  < slow[1] and onight ? low  : nz(slow[1],  low)) 
+
+dev = shigh-slow
+basis = slow
+upper_1 = basis + (0.236*dev)
+upper_2 = basis + (0.382*dev)
+upper_3 = basis + (0.5*dev)
+upper_4 = basis + (0.618*dev)
+upper_5 = basis + (0.764*dev)
+
+
+p6 = plot(showfb_shigh and trade ? shigh : na, color=dcolor3, linewidth=1, title="shigh", style=circles)
+p1 = plot(showfb_u236 and trade ? upper_1 : na, color=dcolor3, linewidth=1, title="0.236", style=circles)
+p2 = plot(showfb_u382 and close > basis and trade ? upper_2 : na, color=dcolor3, linewidth=1, title="0.382", style=circles)
+p3 = plot(showfb_u5 and close > basis and trade ? upper_3 : na, color=dcolor3, linewidth=1, title="0.5", style=circles)
+p4 = plot(showfb_u618 and close > basis and trade ? upper_4 : na, color=dcolor3, linewidth=1, title="0.618", style=circles)
+p5 = plot(showfb_u764 and close > basis and trade ? upper_5 : na, color=dcolor3, linewidth=1, title="0.764", style=circles)
+p0 = plot(showfb_slow and trade ? slow : na, color=dcolor3, linewidth=1, title="slow", style=circles)
+
+fill(p0, p1, color=blue, transp=80)
+fill(p1, p2, color=gray, transp=80)
+fill(p2, p3, color=gray, transp=80)
+fill(p4, p5, color=gray, transp=80)
+fill(p5, p6, color=red, transp=80)
+
+tt = time("1440",sessionblock) // 1440=60*24 is the number of minutes in a whole day. You may use "0930-1600" as second session parameter
+
+is_first = na(tt[1]) and not na(tt) or tt[1] < tt
+ending_hour = input(defval=09, title="Ending Hour", type=integer)
+ending_minute = input(defval=30, title="Ending Minute", type=integer)
+LastOnly = input(title="Last only", type=bool, defval=false)
+
+day_high = na
+day_low = na
+k = na
+
+if is_first and barstate.isnew and ((hour < ending_hour or hour >= 16) or (hour == ending_hour and minute < ending_minute))
+    day_high := high
+    day_low := low
+else 
+    day_high := day_high[1]
+    day_low := day_low[1]
+
+if high > day_high and ((hour < ending_hour or hour >= 16) or (hour == ending_hour and minute < ending_minute))
+    day_high := high
+    
+if low < day_low and ((hour < ending_hour or hour >= 16) or (hour == ending_hour and minute < ending_minute))
+    day_low := low
+
+dcolor7 = na(t) ? na : red
+dcolor8 = na(t)  ? na : green
+
+plot(day_high, style=cross, color=dcolor7, linewidth=2)
+plot(day_low, style=cross, color=dcolor8, linewidth=2)
+
+
+
+

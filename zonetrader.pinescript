@@ -96,6 +96,15 @@ takeS3 = input(false, "s3")
 if trade
     // case revert when shigh is higher than the opening high
     if shigh >= o_high and slow <= o_low 
+        // first check if r3 virgin test short works
+        if takeR3 and high >= dr3 and dr3 >= o_high //and not r3_done 
+            strategy.entry("r3", strategy.short)
+            strategy.exit("xr3", "r3", profit=pi, loss=sl) // note
+            r3_done := true
+        if takeS3 and low <= ds3 + 1  and ds3 <= o_low // or limit
+            strategy.entry("s3", strategy.long)
+            strategy.exit("xs3", "s3", profit=pi, loss=sl)
+            s3_done = true
         // if high in sell zone
         if takeSz and high > u764 and high <= o_high and not sz_done
             strategy.entry("sz", strategy.short, limit=o_high)
@@ -107,32 +116,31 @@ if trade
             strategy.exit("xsh1", "sh1", profit=pi, loss=sl)
             shigh_done := true
         // buy breakout only if high does not hold and o_high is not a threat either
-        if takeLzbrk and open > o_high and close > o_high and not shigh_done and not Lzbrk_done
+        if takeLzbrk and open <= o_high and close > o_high and not shigh_done and not Lzbrk_done
             strategy.entry("Lzbrk", strategy.long)
             strategy.exit("xLzbrk" , "Lzbrk", profit=pi, loss=sl)
             Lzbrk_done := true
-        // check for reversing scenario
-        if Lzbrk_done and open < o_high and close < o_high
-            strategy.entry("Lzrev", strategy.short)
-            strategy.exit("xLzrev" , "Lzrev", profit=pi, loss=sl)
-            Lzbrk_done := false
         // if low in buy zone
         if takeLz and low >= o_low and low < u236 and not Lz_done
             strategy.entry("Lz", strategy.long)
             strategy.exit("xLz", "Lz", profit=pi, loss=sl)
             Lz_done := true
         // sell short breakout only if low does not hold
-        if takeSzbrk and open < o_low and close < o_low and not szbrk_done
+        if takeSzbrk and open < o_low and close < o_low and ds3 > o_low and not szbrk_done
             strategy.entry("szbrk", strategy.short)
             strategy.exit("xszbrk", "szbrk", profit=pi, loss=sl)
             szbrk_done := true
     // case breakout upside or fakeout when opening high trounces overnight high (shigh)
     if shigh < o_high and slow < o_low
         // first check if r3 virgin test short works
-        if takeR3 and high >= dr3 //and not r3_done // sorry, r3 too strong in my testing on TV
+        if takeR3 and high >= dr3 and dr3 >= o_high //and not r3_done 
             strategy.entry("r3", strategy.short)
             strategy.exit("xr3", "r3", profit=pi, loss=sl) // note
             r3_done := true
+        if takeS3 and low <= ds3 + 1  and ds3 <= o_low // or limit
+            strategy.entry("s3", strategy.long)
+            strategy.exit("xs3", "s3", profit=pi, loss=sl)
+            s3_done = true
         // breakout only makes sense if r3 not already under test and holding
         if takeLzbrk and open >= o_high and close > o_high and not Lzbrk_done and r3_done
             strategy.entry("L1brk", strategy.long)
@@ -140,30 +148,49 @@ if trade
             Lzbrk_done := true
     // case breakout to downside or fakeout when opening low crushes overnight low
     if shigh > o_high and slow > o_low
-        if takeS3 and low <= ds3 + 1 and open > ds3 and close >= ds3 // or limit
+        // first check if r3 virgin test short works
+        if takeR3 and high >= dr3 and dr3 >= o_high //and not r3_done 
+            strategy.entry("r3", strategy.short)
+            strategy.exit("xr3", "r3", profit=pi, loss=sl) // note
+            r3_done := true
+        if takeS3 and low <= ds3 + 1  and ds3 <= o_low // or limit
             strategy.entry("s3", strategy.long)
             strategy.exit("xs3", "s3", profit=pi, loss=sl)
             s3_done = true
         // breakout only makes sense if s3 not already under test and holding
-        if takeSz and open < o_low and close < o_low and not sz_done //and not s3_done
+        if takeSzbrk and open < o_low and close < o_low and ds3 > o_low  and not szbrk_done
             strategy.entry("szbrk", strategy.short)
             strategy.exit("xszbrk", "szbrk", profit=pi, loss=sl)
-            sz_done := true
+            szbrk_done := true
     // case where both directions were squeezed!
     if shigh < o_high and slow > o_low
         // first check if r3 virgin test short works
-        if takeR3 and high >= dr3 //and not r3_done 
+        if takeR3 and high >= dr3 and dr3 >= o_high //and not r3_done 
             strategy.entry("r3", strategy.short)
             strategy.exit("xr3", "r3", profit=pi, loss=sl) // note
             r3_done := true
-        if takeS3 and low <= ds3 + 1 and open > ds3 and close >= ds3 // or limit
+        if takeS3 and low <= ds3 + 1 and ds3 <= o_low // or limit
             strategy.entry("s3", strategy.long)
             strategy.exit("xs3", "s3", profit=pi, loss=sl)
             s3_done = true
 
-            
     // case breakout downside or fakeout
-   // if shigh > s_high and slow > s_low
+    if shigh > o_high and slow > o_low
+        // first check if r3 virgin test short works
+        if takeR3 and high >= dr3 and dr3 >= o_high //and not r3_done 
+            strategy.entry("r3", strategy.short)
+            strategy.exit("xr3", "r3", profit=pi, loss=sl) // note
+            r3_done := true
+        if takeS3 and low <= ds3 + 1 and ds3 <= o_low // or limit
+            strategy.entry("s3", strategy.long)
+            strategy.exit("xs3", "s3", profit=pi, loss=sl)
+            s3_done = true   
+     // breakout only makes sense if s3 not already under test and holding
+        if takeSzbrk and open < slow and close < o_low and ds3 > o_low and not szbrk_done 
+            strategy.entry("szbrk", strategy.short)
+            strategy.exit("xszbrk", "szbrk", profit=pi, loss=sl)
+            szbrk_done := true        
+   
 et = time(timeframe.period, exitblock)
 exit = na(et) ? false : true
 if exit and strategy.position_size != 0
