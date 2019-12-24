@@ -1,0 +1,190 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © asmartdog
+//@version=4
+strategy("ZoneTrader", overlay=true)
+threshold = input(5, "threshold")
+pi = input(16, "Profit")   
+sl = input(16, "Stop")  
+sessionblock = input("0830-0930", "opening swing block")
+tradeblock = input("0930-1230", "trading block")
+exitblock = input("1245-1300", "exiting block")
+is_newbar1(res) =>
+    t = time(res)
+    change(t) != 0 ? 1 : 0
+t = time(timeframe.period, tradeblock)
+trade = na(t) ? false : true
+
+// Session high and low with retracement levels (buy and sell zones)
+// note that this cannot be a rolling high- it must be from before the opening swing
+onightblock = input("1700-0830")
+ot = time(timeframe.period, onightblock)
+onight = na(ot) ? false : true
+
+var shigh = 0.0
+var slow = 0.0
+
+// Session high and low with retracement levels (buy and sell zones)
+shigh := is_newbar1("D") ? high : (high > shigh[1] and onight ? high : nz(shigh[1], high))
+slow  := is_newbar1("D") ? low : (low  < slow[1] and onight ? low  : nz(slow[1],  low)) 
+basis = slow
+dev = shigh-slow
+u236= basis + (0.236*dev) // between slow and u236 is buy zone
+u382= basis + (0.382*dev)
+u5= basis + (0.5*dev)
+u618= basis + (0.618*dev)
+u764= basis + (0.764*dev) // between shigh adn u764 is sell zone
+
+// 1. prior day fib levels
+pivot = (high + low + close ) / 3.0 
+R1 = pivot + 0.382 * (high - low)
+S1 = pivot - 0.382 * (high - low)
+R2 = pivot + 0.618 * (high - low)
+S2 = pivot - 0.618 * (high - low)
+R3 = pivot + (high - low)
+S3 = pivot - (high - low)
+
+// Daily line breaks
+dopen = security(syminfo.tickerid, "D", open)
+
+//2. Daily Pivots 
+dp = security(syminfo.tickerid, "D", pivot[1])
+dr3 = security(syminfo.tickerid, "D", R3[1])
+dr2 = security(syminfo.tickerid, "D", R2[1]) 
+dr1 = security(syminfo.tickerid, "D", R1[1]) 
+ds1 = security(syminfo.tickerid, "D", S1[1]) 
+ds2 = security(syminfo.tickerid, "D", S2[1]) 
+ds3 = security(syminfo.tickerid, "D", S3[1])
+tt = time("1440", sessionblock) 
+
+// 3. opening swing high and low also..
+is_first = na(tt[1]) and not na(tt) or tt[1] < tt
+ending_hour = input(defval=09, title="Ending Hour", type=input.integer)
+ending_minute = input(defval=30, title="Ending Minute", type=input.integer)
+
+var o_high = 0.0
+var o_low = 0.0
+
+if is_first and barstate.isnew and ((hour < ending_hour or hour >= 16) or (hour == ending_hour and minute < ending_minute))
+    o_high := high
+    o_low := low
+else 
+    o_high := o_high[1]
+    o_low := o_low[1]
+
+if high > o_high and ((hour < ending_hour or hour >= 16) or (hour == ending_hour and minute < ending_minute))
+    o_high := high
+    
+if low < o_low and ((hour < ending_hour or hour >= 16) or (hour == ending_hour and minute < ending_minute))
+    o_low := low
+
+var s3_done = false
+var r3_done = false
+var sz_done = false
+var Lz_done = false
+var szbrk_done = false
+var Lzbrk_done = false
+var shigh_done = false
+var slow_done = false
+takeSz = input(false, "Sell zone")
+takeShigh = input(false, "overnight high")
+takeLz = input(false, "Long zone")
+takeSzbrk = input(false, "szbrk")
+takeLzbrk = input(false, "Lzbrk")
+takeR3 = input(false, "r3")
+takeS3 = input(false, "s3")
+
+if trade
+    // case revert when shigh is higher than the opening high
+    if shigh >= o_high and slow <= o_low 
+        // if high in sell zone
+        if takeSz and high > u764 and high <= o_high and not sz_done
+            strategy.entry("sz", strategy.short, limit=o_high)
+            strategy.exit("xsz", "sz", profit=pi, loss=sl)
+            sz_done := true
+        // if opening high beaten then short at overnight high only on the virgin test    
+        if takeShigh and open > o_high and close > o_high and high >= shigh - 1
+            strategy.entry("sh1", strategy.short, limit=o_high/2+shigh/2)
+            strategy.exit("xsh1", "sh1", profit=pi, loss=sl)
+            shigh_done := true
+        // buy breakout only if high does not hold and o_high is not a threat either
+        if takeLzbrk and open > o_high and close > o_high and not shigh_done and not Lzbrk_done
+            strategy.entry("Lzbrk", strategy.long)
+            strategy.exit("xLzbrk" , "Lzbrk", profit=pi, loss=sl)
+            Lzbrk_done := true
+        // check for reversing scenario
+        if Lzbrk_done and open < o_high and close < o_high
+            strategy.entry("Lzrev", strategy.short)
+            strategy.exit("xLzrev" , "Lzrev", profit=pi, loss=sl)
+            Lzbrk_done := false
+        // if low in buy zone
+        if takeLz and low >= o_low and low < u236 and not Lz_done
+            strategy.entry("Lz", strategy.long)
+            strategy.exit("xLz", "Lz", profit=pi, loss=sl)
+            Lz_done := true
+        // sell short breakout only if low does not hold
+        if takeSzbrk and open < o_low and close < o_low and not szbrk_done
+            strategy.entry("szbrk", strategy.short)
+            strategy.exit("xszbrk", "szbrk", profit=pi, loss=sl)
+            szbrk_done := true
+    // case breakout upside or fakeout when opening high trounces overnight high (shigh)
+    if shigh < o_high and slow < o_low
+        // first check if r3 virgin test short works
+        if takeR3 and high >= dr3 //and not r3_done // sorry, r3 too strong in my testing on TV
+            strategy.entry("r3", strategy.short)
+            strategy.exit("xr3", "r3", profit=pi, loss=sl) // note
+            r3_done := true
+        // breakout only makes sense if r3 not already under test and holding
+        if takeLzbrk and open >= o_high and close > o_high and not Lzbrk_done and r3_done
+            strategy.entry("L1brk", strategy.long)
+            strategy.exit("xL1brk" , "L1brk", profit=pi, loss=sl)
+            Lzbrk_done := true
+    // case breakout to downside or fakeout when opening low crushes overnight low
+    if shigh > o_high and slow > o_low
+        if takeS3 and low <= ds3 + 1 and open > ds3 and close >= ds3 // or limit
+            strategy.entry("s3", strategy.long)
+            strategy.exit("xs3", "s3", profit=pi, loss=sl)
+            s3_done = true
+        // breakout only makes sense if s3 not already under test and holding
+        if takeSz and open < o_low and close < o_low and not sz_done //and not s3_done
+            strategy.entry("szbrk", strategy.short)
+            strategy.exit("xszbrk", "szbrk", profit=pi, loss=sl)
+            sz_done := true
+    // case where both directions were squeezed!
+    if shigh < o_high and slow > o_low
+        // first check if r3 virgin test short works
+        if takeR3 and high >= dr3 //and not r3_done 
+            strategy.entry("r3", strategy.short)
+            strategy.exit("xr3", "r3", profit=pi, loss=sl) // note
+            r3_done := true
+        if takeS3 and low <= ds3 + 1 and open > ds3 and close >= ds3 // or limit
+            strategy.entry("s3", strategy.long)
+            strategy.exit("xs3", "s3", profit=pi, loss=sl)
+            s3_done = true
+
+            
+    // case breakout downside or fakeout
+   // if shigh > s_high and slow > s_low
+et = time(timeframe.period, exitblock)
+exit = na(et) ? false : true
+if exit and strategy.position_size != 0
+    strategy.close('sz')
+    strategy.close('s3')
+    strategy.close("r3")
+    strategy.close('sh1')
+    strategy.close('Lz')
+    strategy.close('Lzrev')
+    strategy.close('szbrk')
+    strategy.close('Lzbrk')
+
+s3_done := dopen != dopen[1] ? false : s3_done
+r3_done := dopen != dopen[1] ? false : r3_done
+shigh_done := dopen != dopen[1] ? false : shigh_done
+sz_done := dopen != dopen[1] ? false : sz_done
+Lz_done := dopen != dopen[1] ? false : Lz_done
+szbrk_done := dopen != dopen[1] ? false : szbrk_done
+Lzbrk_done := dopen != dopen[1] ? false : Lzbrk_done
+
+//    strategy.entry('dpl', strategy.long, stop = s_high + 1)
+//   strategy.exit('xdpl', 'dpl', profit = pi, loss = sl)
+//    strategy.entry('dps', strategy.short, stop = s_low - 1)
+//    strategy.exit('xdps', 'dps', profit = pi, loss = sl)
