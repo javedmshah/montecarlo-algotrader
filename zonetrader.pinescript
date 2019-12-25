@@ -3,7 +3,7 @@
 //@version=4
 strategy("ZoneTrader", overlay=true)
 threshold = input(5, "threshold")
-pi = input(16, "Profit")   
+pi = input(18, "Profit")   
 sl = input(16, "Stop")  
 sessionblock = input("0830-0930", "opening swing block")
 tradeblock = input("0930-1230", "trading block")
@@ -174,22 +174,6 @@ if trade
             strategy.exit("xs3", "s3", profit=pi, loss=sl)
             s3_done = true
 
-    // case breakout downside or fakeout
-    if shigh > o_high and slow > o_low
-        // first check if r3 virgin test short works
-        if takeR3 and high >= dr3 and dr3 >= o_high //and not r3_done 
-            strategy.entry("r3", strategy.short)
-            strategy.exit("xr3", "r3", profit=pi, loss=sl) // note
-            r3_done := true
-        if takeS3 and low <= ds3 + 1 and ds3 <= o_low // or limit
-            strategy.entry("s3", strategy.long)
-            strategy.exit("xs3", "s3", profit=pi, loss=sl)
-            s3_done = true   
-        // breakout only makes sense if s3 not already under test and holding
-        if takeSzbrk and open < slow and close < o_low and ds3 > o_low and not szbrk_done 
-            strategy.entry("szbrk", strategy.short)
-            strategy.exit("xszbrk", "szbrk", profit=pi, loss=sl)
-            szbrk_done := true   
 
 et = time(timeframe.period, exitblock)
 exit = na(et) ? false : true
