@@ -1,3 +1,4 @@
+[IntrabarOrderGeneration = true]
 inputs:
 	takeR3				(true),
 	takeS3				(true),
@@ -11,7 +12,6 @@ inputs:
 	EndOpeningSession	(0730);
 
 variables:
-	intrabarpersist int BT( 0 ),
     double ds1( 0 ),
 	double ds2( 0 ),
 	double ds3( 0 ),
@@ -41,16 +41,22 @@ variables:
 	bool s3_ohsholsl (false),
 	bool r3_ohshslol  (false),
 	bool s3_ohshslol  (false),
-	bool useR2_lowstop 		(false),
-	bool useR3_lowstop 		(false),
-	bool usePP_lowstop		(false),
-	bool useSH_lowstop		(false),
+	bool useR2_lowstop 	(false),
+	bool useR3_lowstop 	(false),
+	bool usePP_lowstop	(false),
+	bool useSH_lowstop	(false),
+	bool useS1_lowstop	(false),
 	bool useS1_highstop (false),
 	bool useS2_highstop (false),
+	bool useR3_highstop	(false),
+	bool usePP_highstop	(false),
+	bool useS2_lowstop	(false),
 	bool lzbrk_shoholsl (false),
 	bool lz_shohslol 	(false),
 	bool fade_ohsholsl	(false),
 	bool useR2_highstop (false),
+	bool useGeneric_highstop	(false),
+	double generic_highstop_v (0),
 	bool fadex_ohsholsl	(false);
 
 CurrSess = CurrentSession( 0 );
@@ -100,7 +106,7 @@ begin
 
 	YestHigh = TodaysHigh;
 	YestLow = TodaysLow;
-	YestClose = Close[1];
+	YestClose = Close;
 	TodaysHigh = High;
    	TodaysLow = Low;
 
@@ -137,9 +143,17 @@ vars: o_range(0), s_range(0);
 // measure the opening swing
 o_range = o_high - o_low;
 s_range = shigh - slow;
-var: ema50(0), exit_v(0);
+var: ema10(0), ema50(0), exit_v(0);
 ema50 = XAverage(close, 50);
+ema10 = XAverage(close, 10);
 
+if noTrade = false and time >= StartOpeningSession and time <= 1230 then begin
+	// generally true?
+	// buy s1 breakout to upside if s2 becamse low stop
+	if useS2_lowstop = true and ema10 > ema50 and o_low < ds2 Then
+		buy ("s2s1_brkout") next bar at ds2 stop;
+
+end;
 if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
 	 // INSIDE case revert when shigh is higher than the opening high
     if shigh > o_high and slow < o_low  then begin
@@ -155,8 +169,9 @@ if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
         	s3_shoholsl = true;
         end;
         // buy breakout only if high does not hold and o_high is not a threat either
-        if useR2_highstop = false and takeLzbrk = true and lzbrk_shoholsl = false
-        	and low crosses above o_high and close > o_high then Begin
+        if takeLzbrk = true and lzbrk_shoholsl = false
+        	and low crosses above o_high and close > o_high
+        	and o_high > dr2 then Begin
         	buy ("lzbrk_shoholsl") at this bar;
         	lzbrk_shoholsl = true;
         end;
@@ -174,7 +189,11 @@ if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
    		if useR2_lowstop = false and fadeOhigh and fade_ohsholsl = false
    			and o_range <= s_range * 2 Then
    		Begin
-   			if close crosses under o_high Then Begin
+   			//if close crosses under o_high Then Begin
+   			// better might be using the generic stop_high above?
+   			if useGeneric_highstop = true
+   				and high crosses under generic_highstop_v - 1
+   				and generic_highstop_v >= dr2 then begin
    				sell short ("fade_ohsholsl") this bar on close;
    				fade_ohsholsl = true;
    			end;
@@ -203,14 +222,15 @@ if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
         	s3_ohsholsl = true;
         end;
     end;
-	// when opening low lower overnight low and opening high lower than overnight high
-	// case breakout to downside or fakeout
+	// when opening low lower than overnight low and opening high lower than overnight high
+	// case: breakout to downside or fakeout
     if shigh > o_high and slow > o_low then begin
-        // contextual #1: slow did not break dP, neither did o_low by much
+        // contextual #1: slow did not break dP
+        // careful about o_low near miss of dP followed by retry attempt
         // and a stop_v was formed near dP
-        if usePP_lowstop = true and dp <= shigh
-        	and low crosses under o_low then Begin
-        	buy ("lz_shohslol") at this bar;
+        if usePP_lowstop = true and dp < shigh
+        	and low crosses above dp then Begin
+        	buy ("lz_shohslol") at next bar at dp + 1 limit;
         	lz_shohslol = true;
         end;
 
@@ -220,12 +240,7 @@ if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
            	sell short ("r3_shohslol") at this bar;
            	r3_shohslol = true;
         end;
-        // careful
-        if useS1_highstop = false and useS2_highstop = false and s3_shohslol = false and takeS3
-        	and low crosses under ds3 and ds3 <= o_low then begin // or limit
-        	buy ("s3_shohslol") at this bar ;
-        	s3_shohslol = true;
-        end;
+
     end;
      // case where both directions were squeezed!
     if shigh < o_high and slow > o_low then begin
@@ -240,14 +255,20 @@ if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
 	end;
 end;
 
-if time >= EndOpeningSession and time <= 1230 then begin
+if time >= EndOpeningSession and time <= 1300 then begin
 	usePP_lowstop = false;
+	usePP_highstop = false;
 	useR2_lowstop = false;
 	useR3_lowstop = false;
 	useSH_lowstop = false;
+	useS1_lowstop = false;
 	useS1_highstop = false;
 	useS2_highstop = false;
 	useR2_highstop = false;
+	useR3_highstop = false;
+	useS2_lowstop = false;
+	useGeneric_highstop = false;
+	generic_highstop_v = 0;
 	// check if any new lows became a stop
 	var: stop_v (0);
 	// swinglow stops
@@ -256,53 +277,71 @@ if time >= EndOpeningSession and time <= 1230 then begin
 		useR2_lowstop = true;
 	if stop_v <> -1 and stop_v >= dr3 - 2 and stop_v <= dr3 + 2 Then
 		useR3_lowstop = true;
-	if stop_v <> -1 and stop_v >= dp - 2 and stop_v <= dp + 2 Then
+	if stop_v <> -1 and stop_v >= dp - 1 and stop_v <= dp + 1 Then
 		usePP_lowstop = true;
+	if stop_v <> -1 and stop_v >= ds1 - 2 and stop_v <= ds1 + 2 Then
+		useS1_lowstop = true;
+	if stop_v <> -1 and stop_v >= ds2 - 2 and stop_v <= ds2 + 2 Then
+		useS2_lowstop = true;
 	if stop_v <> -1 and stop_v >= shigh - 2 and stop_v <= shigh + 2 Then
 		useSH_lowstop = true;
 
-
 	//swinghigh stops
-	stop_v = SwingHigh(1, high, 1, 10);
-	if stop_v <> -1 and stop_v >= ds1 - 2 and stop_v <= ds1 + 2 then
+	stop_v = SwingHigh(1, high, 2, 10);
+	if stop_v <> -1 and stop_v >= ds1 - 3 and stop_v <= ds1 + 3 then begin
 		useS1_highstop = true;
-	if stop_v <> -1 and stop_v >= ds2 - 2 and stop_v <= ds2 + 2 then
+	end else if stop_v <> -1 and stop_v >= ds2 - 2 and stop_v <= ds2 + 2 then begin
 		useS2_highstop = true;
-	if stop_v <> -1 and stop_v >= dr3 - 2 and stop_v <= dr3 + 2 Then
+	end else if stop_v <> -1 and stop_v >= dr3 - 2 and stop_v <= dr3 + 2 Then begin
+		useR3_highstop = true;
+	end else if stop_v <> -1 and stop_v >= dr2 - 2 and stop_v <= dr2 + 2 Then begin
 		useR2_highstop = true;
-	if stop_v <> -1 and stop_v >= dr2 - 2 and stop_v <= dr2 + 2 Then
-		useR2_highstop = true;
+	end else if stop_v <> -1 and stop_v >= dp - 1 and stop_v <= dp + 1 Then begin
+		usePP_highstop = true;
+	end else begin
+		useGeneric_highstop = true;
+		generic_highstop_v = stop_v;
+	end;
 
 	// swinghigh exits
+	//if stop_v <> -1 and lzbrk_shoholsl = true Then
+		//sell ("x_generic_highstop") this bar on close;
+
+	if usePP_highstop = true and Marketposition = 1 Then
+		sell ("x_pp_highstop") this bar on close;
+
 	if useR2_highstop = true and lzbrk_shoholsl = true and Marketposition = 1 Then
-		sell ("r2_highstop") this bar on close;
+		sell ("x_r2_highstop") this bar on close;
 	if useS1_highstop = true and s3_shohslol = true Then
-		sell ("s1_highstop") this bar on close;
+		sell ("x_s1_highstop") this bar on close;
 	if useS2_highstop = true and s3_shohslol = true Then
-		sell ("s2_highstop") this bar on close;
+		sell ("x_s2_highstop") this bar on close;
 
 	// swinglow exits
 	if (useSH_lowstop = true and (fadex_ohsholsl = true or fade_ohsholsl = true)) Then
 	Begin
 		if low crosses under stop_v + 2 Then
-			buy to cover ("shstop") this bar on close;
+			buy to cover ("x_sh_lowstop") this bar on close;
 	end;
 	if (useR3_lowstop = true and (fadex_ohsholsl = true or fade_ohsholsl = true)) Then
 	Begin
 		if low crosses under stop_v + 2 Then
-			buy to cover ("r3stop") this bar on close;
+			buy to cover ("x_r3_lowstop") this bar on close;
 	end;
-
 	if useR2_lowstop = true and marketposition = -1 Then
 	Begin
 		if low crosses under stop_v + 2 Then
-			buy to cover ("r2stop") this bar on close;
+			buy to cover ("x_r2_lowstop") this bar on close;
 	end;
-
 	if usePP_lowstop = true and r3_ohsholsl = true Then
 	Begin
 		if low crosses under stop_v or low crosses under ema50 Then
-			buy to cover ("ppstop") this bar on close;
+			buy to cover ("x_pp_lowstop") this bar on close;
+	end;
+	if useS1_lowstop = true and Marketposition = -1 Then
+	Begin
+		if low crosses under stop_v +2 Then
+			buy to cover ("x_s1_lowstop") this bar on close;
 	end;
 
 	// contextual exit #1
@@ -311,6 +350,8 @@ if time >= EndOpeningSession and time <= 1230 then begin
 	// if now news, ES will run to EMA or R1 or u5
 
 	exit_v = Minlist(ema50-1, dr3-1);
-	if lz_shohslol = true and high >= exit_v Then
-		sell this bar on close;
+	if lz_shohslol = true and high crosses above exit_v Then
+		sell ("x_lz_shohslol_ema") this bar on close;
+	if fade_ohsholsl = true and low crosses under exit_v then
+		buy to cover ("x_fade_ohsholsl_ema") this bar on close;
 end;
