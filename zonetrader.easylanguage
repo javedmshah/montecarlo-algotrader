@@ -9,7 +9,8 @@ inputs:
 	StartGlobex			(1500),
 	EndGlobex			(0630),
 	StartOpeningSession	(0630),
-	EndOpeningSession	(0730);
+	EndOpeningSession	(0730),
+	emalen				(75); // 750 minutes worth
 
 variables:
     double ds1( 0 ),
@@ -59,6 +60,7 @@ variables:
 	bool usePP_wide_lowstop (false),
 	bool useOL_wide_lowstop	(false),
 	bool o_low_wide_stop_long (false),
+	double o_low_wide_stop_v (0),
 	double generic_lowstop_v (0),
 	bool useGeneric_highstop	(false),
 	double generic_highstop_v (0),
@@ -75,6 +77,7 @@ Begin
 	shigh = 0;
 	slow = 999999;
 	wide_lowstop_v = -1;
+	o_low_wide_stop_v = -1;
 	r3_shoholsl = false;
 	s3_shoholsl = false;
 	r3_shohslol = false;
@@ -152,15 +155,18 @@ vars: o_range(0), s_range(0);
 // measure the opening swing
 o_range = o_high - o_low;
 s_range = shigh - slow;
-var: ema10(0), ema50(0), exit_v(0);
-ema50 = XAverage(close, 50);
+var: ema10(0), emaX(0), exit_v(0);
+emaX = XAverage(close, emalen);
 ema10 = XAverage(close, 10);
 
 if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
 
-	if useOL_wide_lowstop = true and fade_ohsholsl = false then Begin
-		buy ("o_low_wide_stop") next bar at o_low limit;
-		o_low_wide_stop_long = true;
+	if useOL_wide_lowstop = true and fade_ohsholsl = false
+		and dp > o_low and ds2 >= o_low then Begin
+		if low crosses above wide_lowstop_v then begin
+			buy ("o_low_wide_stop") this bar on close;
+			o_low_wide_stop_long = true;
+		end;
 	end;
 
 	{*** INSIDE case revert when shigh is higher than the opening high *** }
@@ -282,18 +288,34 @@ if time >= EndOpeningSession and time <= 1300 then begin
 	*************************************}
 
 	// check if any new lows became a stop
-	var: stop_v (0);
+	var: stop_v (0), openBarsAgo(-1), wide_lowstop_v_barsago(-1);
+
+	openBarsAgo = FindBar(Date, StartOpeningSession);
+
+
 	// swinglow stops
 
 	// only compute the wide stop once per trading session
-	if wide_lowstop_v = -1 then
+	if wide_lowstop_v = -1 then begin
 		wide_lowstop_v = SwingLow(1, low, 5, 50);
+		// this stop must have been created by WallStreet traders
+		wide_lowstop_v_barsago = SwingLowBar(1, low, 5, 50);
+		if openBarsAgo = -1 or wide_lowstop_v_barsago = -1
+			or openBarsAgo < wide_lowstop_v_barsago Then
+			wide_lowstop_v = -1;
+	end;
+
 	if wide_lowstop_v <> -1 Then
 		generic_lowstop_v = wide_lowstop_v;
 	if wide_lowstop_v <> -1 and wide_lowstop_v >= dp - 2 and wide_lowstop_v <= dp + 2 Then
 		usePP_wide_lowstop = true;
-	if wide_lowstop_v <> -1 and wide_lowstop_v >= o_low - 2 and wide_lowstop_v <= o_low + 2 Then
-		useOL_wide_lowstop = true;
+	if wide_lowstop_v <> -1 and wide_lowstop_v >= o_low - 1 and wide_lowstop_v <= o_low + 1 Then
+	Begin
+		begin
+			useOL_wide_lowstop = true;
+			o_low_wide_stop_v = wide_lowstop_v;
+		end;
+	end;
 
 	stop_v = SwingLow(1, low, 3, 20);
 	if stop_v <> -1 and stop_v >= dr2 - 2 and stop_v <= dr2 + 2 Then
@@ -329,9 +351,9 @@ if time >= EndOpeningSession and time <= 1300 then begin
 		generic_highstop_v = stop_v;
 
 		if generic_highstop_v <> -1 and
-			generic_highstop_v <= ema50 + 2 or generic_highstop_v >= ema50 - 2 Then
+			generic_highstop_v <= emaX + 2 or generic_highstop_v >= emaX - 2 Then
 		begin
-			generic_ema50_highstop_v = minlist(generic_highstop_v, ema50);
+			generic_ema50_highstop_v = minlist(generic_highstop_v, emaX);
 			useEma50_highstop = true;
 		end;
 	end;
@@ -377,7 +399,7 @@ if time >= EndOpeningSession and time <= 1300 then begin
 
 	if usePP_lowstop = true and r3_ohsholsl = true Then
 	Begin
-		if low crosses under dp or low crosses under ema50 Then
+		if low crosses under dp or low crosses under emaX Then
 			buy to cover ("x_pp_lowstop") this bar on close;
 	end;
 	if useS1_lowstop = true and Marketposition = -1 Then
@@ -391,7 +413,7 @@ if time >= EndOpeningSession and time <= 1300 then begin
 	// EMA is high above but within u764, so exit at EMA
 	// if now news, ES will run to EMA or R1 or u5
 
-	exit_v = Minlist(ema50, dr3);
+	exit_v = Minlist(emaX, dr3);
 	if lz_shohslol = true and high crosses above exit_v - 1 Then
 		sell ("x_lz_shohslol_ema_r3") this bar on close;
 	{if lz_shohslol = true and ema50_generic_highstop_confluence = true Then
