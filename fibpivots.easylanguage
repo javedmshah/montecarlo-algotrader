@@ -1,0 +1,129 @@
+inputs:
+	int R3Color( RGB(250,48,8) ),
+	int R2Color( RGB(250,100,103) ),
+	int R1Color( RGB(252,180,148) ),
+	int PivotColor(Darkgray),
+	int S1Color( RGB(192,221,250) ),
+	int S2Color( RGB(113,181,250) ),
+	int S3Color( RGB(35,141,247) ) ;
+
+
+variables:
+	intrabarpersist int BT( 0 ),
+	int CurrSess( 0 ),
+	bool CalcTrigger( false ),
+    double S1( 0 ),
+	double S2( 0 ),
+	double S3( 0 ),
+	double R1( 0 ),
+	double R2( 0 ),
+	double R3( 0 ),
+	double PP( 0 ),
+	double TodaysHigh( 0 ),
+	double YestHigh( 0 ),
+	double TodaysLow( 0 ),
+	double YestLow( 0 ),
+	double TodaysClose( 0 ),
+	double YestClose( 0 ),
+	int Counter( 0 );
+
+
+CurrSess = CurrentSession( 0 );
+CalcTrigger = CurrSess <> CurrSess[1];
+
+if CalcTrigger then
+begin
+	if CurrentBar > 1 then
+		Counter = Counter + 1;
+
+	YestHigh = TodaysHigh;
+	YestLow = TodaysLow;
+	YestClose = Close;
+	TodaysHigh = High;
+   	TodaysLow = Low;
+
+	PP = ( YestHigh + YestLow + YestClose ) / 3;
+	R1 = PP + 0.382 * (YestHigh - YestLow);
+	R2 = PP + 0.618 * (YestHigh - YestLow);
+	R3 = PP + (YestHigh - YestLow) ;
+	S1 = PP - 0.382 * (YestHigh - YestLow);
+	S2 = PP - 0.618 * (YestHigh - YestLow);
+	S3 = PP - (YestHigh - YestLow) ;
+
+
+   	if BT <> 2 then
+   	begin
+   		SetPlotColor[1]( 1, Transparent );
+   		SetPlotColor[1]( 2, Transparent );
+   		SetPlotColor[1]( 3, Transparent );
+   		SetPlotColor[1]( 4, Transparent );
+   		SetPlotColor[1]( 5, Transparent );
+   		SetPlotColor[1]( 6, Transparent );
+   		SetPlotColor[1]( 7, Transparent );
+ 	end;
+end
+else
+begin
+	if High > TodaysHigh then
+		TodaysHigh = High;
+	if Low < TodaysLow then
+		TodaysLow = Low;
+end;
+
+if Counter >= 1 and Time >= 0630 and Time <= 1500 then
+begin
+	Plot4( PP, "PP", darkgray );
+	Plot1( R3, "R3", R3Color  );
+	Plot2( R2, "R2", R2Color );
+	Plot3( R1, "R1", R1Color );
+	Plot5( S1, "S1", S1Color );
+	Plot6( S2, "S2", S2Color );
+	Plot7( S3, "S3", S3Color );
+	var: stop_v(0), {r2low(0), pplow(0),
+		s2high(0), s1high(0),
+		r2high(0), s1low(0), s2low(0),}
+		pphigh(0), generic_highstop_v(0), generic_lowstop_v(0), ema50(0), wide_stop_v(0);
+	// low stops
+	stop_v = SwingLow(1, low, 2, 20);
+	if stop_v <> -1 and stop_v >= R2 - 2 and stop_v <= R2 + 2 then
+		Plot8(stop_v, "r2low", green);
+	//pplow = SwingLow(1, low, 2, 20);
+	if stop_v <> -1 and stop_v >= PP - 2 and stop_v <= PP + 2 Then
+		Plot9(stop_v, "pplow", green);
+	//s2low = SwingLow(1, low, 2, 20);
+	if stop_v <> -1 and stop_v >= S2 - 2 and stop_v <= S2 + 2 then
+		Plot17(stop_v, "s2low", green);
+	//s1low = SwingLow(1, low, 2, 20);
+	if stop_v <> -1 and stop_v >= S1 - 2 and stop_v <= S1 + 2 Then begin
+		Plot13(stop_v, "s1low", green);
+	end else begin
+	// print any stop now..
+		generic_lowstop_v = stop_v;
+	end;
+	if generic_lowstop_v <> -1 then
+	begin
+		PLot18(generic_lowstop_v, "fib_generic_lowstop", green);
+	end;
+	// high stops
+	stop_v = SwingHigh(1, high, 2, 10);
+	if stop_v <> -1 and stop_v >= S2 - 2 and stop_v <= S2 + 2 then
+		Plot10(stop_v, "s2high", red);
+	if stop_v <> -1 and stop_v >= S1 - 3 and stop_v <= S1 + 3 then
+		Plot11(stop_v, "s1high", red);
+	if stop_v <> -1 and stop_v >= R2 - 2 and stop_v <= R2 + 2 Then
+		Plot12(stop_v, "r2high", red);
+	if stop_v <> -1 and stop_v >= PP - 1 and stop_v <= PP + 1 Then begin
+		Plot14(stop_v, "pphigh", red);
+	end else begin
+	// print any stop now..
+		generic_highstop_v = stop_v;
+	end;
+	if generic_highstop_v <> -1 then
+	begin
+		PLot15(generic_highstop_v, "fib_generic_highstop", red);
+		{ema50 = XAverage(close, 50);
+		if generic_highstop_v <= ema50 + 2 or generic_highstop_v >= ema50 - 2 Then
+			Plot16(minlist(generic_highstop_v, ema50), "ema50_generic_highstop", red);}
+	end;
+
+end;
