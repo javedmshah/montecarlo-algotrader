@@ -193,8 +193,8 @@ if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
 
 	{*** INSIDE case revert when shigh is higher than the opening high *** }
     if shigh > o_high and slow < o_low  then begin
-    	if useR2_lowstop = false and takeR3
-    		and high crosses above dr3 and dr3 >= o_high then begin //and not r3_done
+    	if useR2_lowstop = false and takeR3 and lzbrk_shoholsl = false
+    		and close crosses below dr3  and dr3 >= o_high then begin //and not r3_done
            	sell short ("r3_shoholsl") at this bar;
            	r3_shoholsl = true;
         end;
@@ -264,8 +264,8 @@ if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
    			end;
    		end;
    		if useR2_lowstop = false and takeR3
-   			and high crosses above dr3 and dr3 >= o_high
-   			and TodaysHigh <= dr3 + 2
+   			and close crosses below dr3 and dr3 >= o_high
+   			and HighSinceOpen > dr3 + 3 // squeeze over
    			then begin
            	sell short ("r3_ohsholsl") at this bar;//next bar o_high limit;
            	r3_ohsholsl = true;
