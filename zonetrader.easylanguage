@@ -346,7 +346,7 @@ if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
         end;
 
 	end;
-
+	{TODO- cannot take this trade before 1100 if overnight trend was DOWN}
 	if useOL_wide_lowstop = true and fade_ohsholsl = false and o_low_wide_stop_long = false
 		and dp > o_low and ds1 >= o_low then Begin
 		if low crosses above wide_lowstop_v then begin
@@ -363,7 +363,7 @@ if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
 			o_low_wide_stop_long = true;
 		end;
 	end;
-	// the stop needs to be tight based on testing this setup
+	{// the stop needs to be tight based on testing this setup
 	if wide_lowstop_v <> -1 and emaX > ema20 and ema20 crosses under wide_lowstop_v Then
    	begin
    	 	sell short ("ema20_x_wlowstop") at this bar;
@@ -373,7 +373,7 @@ if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
    	begin
    	 	sell short ("ema20_x_openlow") at this bar;
    	 	ema20_x_openlow = true;
-   	end;
+   	end;}
 end;
 
 if time >= StartOpeningSession and time <= 1300 then begin
@@ -491,6 +491,13 @@ if time >= StartOpeningSession and time <= 1300 then begin
 
 
 	// swinghigh exits
+	if o_low_wide_stop_long = true and marketposition = 1 then
+	begin
+		// dont want LowSinceOpen breaching wide stop
+		if LowSinceOpen crosses under wide_lowstop_v then
+			sell ("lowerDayLow") this bar on close;
+	end;
+
 	if Marketposition = 1 then Begin
 		if generic_highstop_v[1] > 0 and
 			generic_highstop_v < generic_highstop_v[1]
@@ -504,11 +511,11 @@ if time >= StartOpeningSession and time <= 1300 then begin
 	end;
 
 	// swinglow exits
-	if ema20_x_wlowstop = true or ema20_x_openlow = true and marketposition = -1 then begin
+	{if ema20_x_wlowstop = true or ema20_x_openlow = true and marketposition = -1 then begin
 		if generic_lowstop_v[1] > 0 and
 			generic_lowstop_v > generic_lowstop_v[1] then
 			buy to cover  ("hhigh") this bar on close;
-	end;
+	end;}
 
 	{** undesirable but necessary exit **}
 	if Marketposition = -1 then Begin
