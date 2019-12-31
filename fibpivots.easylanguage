@@ -14,7 +14,7 @@ variables:
 	bool CalcTrigger( false ),
     double S1( 0 ),
 	double S2( 0 ),
-	double S3( 0 ),
+	double S3( 0 ),double S4( 0 ), double S5(0),
 	double R1( 0 ),
 	double R2( 0 ),
 	double R3( 0 ),
@@ -49,8 +49,8 @@ begin
 	S1 = PP - 0.382 * (YestHigh - YestLow);
 	S2 = PP - 0.618 * (YestHigh - YestLow);
 	S3 = PP - (YestHigh - YestLow) ;
-
-
+	S4 = PP - 1.618 * (YestHigh - YestLow) ;
+	S5 = PP - 2 * (YestHigh - YestLow) ;
    	if BT <> 2 then
    	begin
    		SetPlotColor[1]( 1, Transparent );
@@ -60,6 +60,8 @@ begin
    		SetPlotColor[1]( 5, Transparent );
    		SetPlotColor[1]( 6, Transparent );
    		SetPlotColor[1]( 7, Transparent );
+   		SetPlotColor[1]( 16, Transparent );
+   		SetPlotColor[1]( 19, Transparent );
  	end;
 end
 else
@@ -73,12 +75,18 @@ end;
 if Counter >= 1 and Time >= 0630 and Time <= 1500 then
 begin
 	Plot4( PP, "PP", darkgray );
-	Plot1( R3, "R3", R3Color  );
-	Plot2( R2, "R2", R2Color );
-	Plot3( R1, "R1", R1Color );
-	Plot5( S1, "S1", S1Color );
-	Plot6( S2, "S2", S2Color );
-	Plot7( S3, "S3", S3Color );
+	//if close >= OpenD(0) then begin
+		Plot1( R3, "R3", R3Color  );
+		Plot2( R2, "R2", R2Color );
+		Plot3( R1, "R1", R1Color );
+	//end;
+		Plot5( S1, "S1", S1Color );
+		Plot6( S2, "S2", S2Color );
+		Plot7( S3, "S3", S3Color );
+	if open crosses under S3 then Begin
+		Plot16( S4, "S4", S3Color );
+		Plot19( S5, "S5", S3Color );
+	end;
 	var: stop_v(0), {r2low(0), pplow(0),
 		s2high(0), s1high(0),
 		r2high(0), s1low(0), s2low(0),}
