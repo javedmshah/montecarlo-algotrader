@@ -1,5 +1,9 @@
-[IntrabarOrderGeneration = true]
+[IntrabarOrderGeneration = false]
 inputs:
+	wideStopLen			(4),
+	genericStopLen 		(2),
+	useWideStops 		(true),
+	useGenericStops 	(false),
 	takeR3				(true),
 	takeS3				(true),
 	takeLzbrk			(true),
@@ -9,8 +13,7 @@ inputs:
 	StartGlobex			(1500),
 	EndGlobex			(0630),
 	StartOpeningSession	(0630),
-	EndOpeningSession	(0730),
-	emalen				(75); // 750 minutes worth
+	EndOpeningSession	(0730); // 750 minutes worth
 
 variables:
     double ds1( 0 ),
@@ -18,66 +21,70 @@ variables:
 	double ds3( 0 ),
 	double dr1( 0 ),
 	double dr2( 0 ),
-	double dr3( 0 ),
+	double dr3( 0 ), double dr4( 0 ), double dr5( 0 ),
+	double ds4( 0 ), double ds5( 0 ),
 	double dp( 0 ),
-	double TodaysHigh( 0 ),
+	intrabarpersist double TodaysHigh( 0 ),
 	double YestHigh( 0 ),
-	double TodaysLow( 0 ),
+	intrabarpersist double TodaysLow( 0 ),
 	double YestLow( 0 ),
 	double TodaysClose( 0 ),
 	double YestClose( 0 ),
 	int Counter( 0 ),
-	noTrade (false);
+	noTrade (false),
+	intrabarpersist double stop_v (-1),
+	intrabarpersist double stop_v_barsago(-1),
+	intrabarpersist double openBarsAgo(-1),
+	intrabarpersist double wide_lowstop_v_barsago(-1),
+	intrabarpersist double wide_highstop_v_barsago(-1),
+	intrabarpersist double generic_highstop_v_barsago(-1),
+	intrabarpersist double generic_lowstop_v_barsago(-1),
+	intrabarpersist double shigh(0),
+	intrabarpersist double slow(9999),
+	intrabarpersist double o_high(0),
+	intrabarpersist double o_low(9999),
+	CurrSess(0), CalcTrigger(false),
+ 	oh(0), ol(0), sh(0), sl(0),
+	intrabarpersist bool r3_done (false),
+	intrabarpersist bool w_hstop (false),
+	intrabarpersist bool useR2_lowstop 	(false),
+	intrabarpersist bool useR3_lowstop 	(false),
+	intrabarpersist bool usePP_lowstop	(false),
+	intrabarpersist bool useSH_lowstop	(false),
+	intrabarpersist bool useS1_lowstop	(false),
+	intrabarpersist bool useS1_highstop (false),
+	intrabarpersist bool useS2_highstop (false),
+	intrabarpersist bool useR3_highstop	(false),
+	intrabarpersist bool usePP_highstop	(false),
+	intrabarpersist bool useS2_lowstop	(false),
+	intrabarpersist bool open_higher_shigh (false),
+	intrabarpersist bool useR2_highstop (false),
+	intrabarpersist bool useEma50_highstop (false),
+	intrabarpersist bool usePP_wide_lowstop (false),
+	intrabarpersist bool useOL_wide_lowstop	(false),
+	intrabarpersist bool o_low_wide_stop_long (false),
+	intrabarpersist double wide_highstop_v (0),
+	intrabarpersist double generic_lowstop_v (0),
+	intrabarpersist bool useGeneric_highstop	(false),
+	intrabarpersist bool useGeneric_lowstop (false),
+	intrabarpersist bool useOH_wide_highstop (false),
+	intrabarpersist double generic_highstop_v (0),
+	intrabarpersist double wide_lowstop_v (-1),
+	intrabarpersist bool dp_limit (false),
+	intrabarpersist bool stop_brkt_ohsholsl (false),
+	intrabarpersist bool wide_highstop (false),
+	intrabarpersist bool ema20_x_wlowstop (false),
+	intrabarpersist bool ema20_x_openlow (false),
+	intrabarpersist bool fadex_ohsholsl	(false),
+	intrabarpersist double PrevDayHigh(0),
+	intrabarpersist double PrevDayLow(9999),
+	intrabarpersist double DayHigh(0),
+	intrabarpersist double DayLow(9999),
+	Intrabarpersist double widest_highstop_v (-1),
+	Intrabarpersist bool wg_hstop (false),
+	Intrabarpersist double widest_lowstop_v (-1);
 
-
-vars: shigh(0), slow(9999), o_high(0), o_low(9999), CurrSess(0), CalcTrigger(false),
- oh(0), ol(0), sh(0), sl(0);
-
-variables:
-	bool r3_shoholsl  (false),
-	bool s3_shoholsl  (false),
-	bool r3_shohslol  (false),
-	bool s3_shohslol  (false),
-	bool r3_ohsholsl (false),
-	bool s3_ohsholsl (false),
-	bool r3_ohshslol  (false),
-	bool s3_ohshslol  (false),
-	bool useR2_lowstop 	(false),
-	bool useR3_lowstop 	(false),
-	bool usePP_lowstop	(false),
-	bool useSH_lowstop	(false),
-	bool useS1_lowstop	(false),
-	bool useS1_highstop (false),
-	bool useS2_highstop (false),
-	bool useR3_highstop	(false),
-	bool usePP_highstop	(false),
-	bool useS2_lowstop	(false),
-	bool lzbrk_shoholsl (false),
-	bool lz_shohslol 	(false),
-	bool fade_ohsholsl	(false),
-	bool useR2_highstop (false),
-	bool useEma50_highstop (false),
-	bool usePP_wide_lowstop (false),
-	bool useOL_wide_lowstop	(false),
-	bool o_low_wide_stop_long (false),
-	double wide_highstop_v (0),
-	double generic_lowstop_v (0),
-	bool useGeneric_highstop	(false),
-	bool useGeneric_lowstop (false),
-	bool useOH_wide_highstop (false),
-	double generic_highstop_v (0),
-	double generic_ema50_highstop_v (0),
-	bool useEma50_lowstop (false),
-	double generic_ema50_lowstop_v (0),
-	double wide_lowstop_v (-1),
-	bool dp_limit (false),
-	bool stop_brkt_ohsholsl (false),
-	bool wide_highstop (false),
-	bool r3_brk_ohsholsl (false),
-	bool wide_lowstop_brk (false),
-	bool ema20_x_wlowstop (false),
-	bool ema20_x_openlow (false),
-	bool fadex_ohsholsl	(false);
+vars: open_d(0), basis(0), dev(0), u236(0), u382(0), u5(0), u618(0), u764(0);
 
 CurrSess = CurrentSession( 0 );
 CalcTrigger = CurrSess <> CurrSess[1];
@@ -89,50 +96,23 @@ Begin
 	slow = 999999;
 	wide_lowstop_v = -1;
 	wide_highstop_v = -1;
-	r3_shoholsl = false;
-	s3_shoholsl = false;
-	r3_shohslol = false;
-	s3_shohslol = false;
-	r3_ohsholsl = false;
-	s3_ohsholsl = false;
-	r3_ohshslol = false;
-	s3_ohshslol = false;
+	PrevDayHigh = DayHigh;
+	PrevDayLow = DayLow;
+	generic_highstop_v = -1;
+	generic_lowstop_v = -1;
+
+	r3_done = false;
+	open_higher_shigh = false;
 	ema20_x_openlow = false;
-	wide_lowstop_brk = false;
-	r3_brk_ohsholsl = false;
 	wide_highstop = false;
 	o_low_wide_stop_long = false;
 	useR2_highstop = true;
-	lzbrk_shoholsl = false;
-	lz_shohslol = false;
-	fade_ohsholsl = false;
-	fadex_ohsholsl = false;
+
 	ema20_x_wlowstop = false;
 	noTrade = false;
-	fade_ohsholsl = false;
-	fadex_ohsholsl = false;
+
 	dp_limit = false;
-	stop_brkt_ohsholsl = false;
-End;
-vars: open_d(0);
 
-
-{globex swing block}
-If Time >= StartGlobex or Time < StartOpeningSession then begin
-	If Low < slow then slow = Low;
-	If High >= shigh then shigh = High;
-end;
-{opening swing block}
-If Time >= StartOpeningSession and Time <= EndOpeningSession then begin
-	If Low < o_low then o_low = Low;
-	If High >= o_high then o_high = High;
-end;
-
-vars: basis(0), dev(0), u236(0), u382(0), u5(0), u618(0), u764(0),
-HighSinceOpen(0), LowSinceOpen(9999);
-// fib pivots
-if CalcTrigger then
-begin
 	if CurrentBar > 1 then
 		Counter = Counter + 1;
 
@@ -142,241 +122,22 @@ begin
 	TodaysHigh = High;
    	TodaysLow = Low;
 
-	LowSinceOpen = 9999;
-	HighSinceOpen = 0;
-
 	dp = ( YestHigh + YestLow + YestClose ) / 3;
 	dr1 = dp + 0.382 * (YestHigh - YestLow);
 	dr2 = dp + 0.618 * (YestHigh - YestLow);
 	dr3 = dp + (YestHigh - YestLow) ;
+	dr4 = dp + 1.618 * (YestHigh - YestLow) ;
+	dr5 = dp + 2 * (YestHigh - YestLow) ;
+
 	ds1 = dp - 0.382 * (YestHigh - YestLow);
 	ds2 = dp - 0.618 * (YestHigh - YestLow);
 	ds3 = dp - (YestHigh - YestLow) ;
+	ds4 = dp - 1.618 * (YestHigh - YestLow) ;
+	ds5 = dp - 2 * (YestHigh - YestLow) ;
 
+	generic_lowstop_v = -2;
+	generic_highstop_v = -2;
 
-end
-else
-begin
-	if High > TodaysHigh then
-		TodaysHigh = High;
-	if Low < TodaysLow then
-		TodaysLow = Low;
-end;
-if time >= StartOpeningSession and time < StartGlobex then Begin
-	if High > HighSinceOpen then
-		HighSinceOpen = High;
-	if Low < LowSinceOpen then
-		LowSinceOpen = Low;
-end;
-if time >= StartOpeningSession then Begin
-	basis = slow;
-	dev = shigh-slow;
-	u236 = basis + (0.236*dev); // between slow and u236 is buy zone
-	u382 = basis + (0.382*dev);
-	u5 = basis + (0.5*dev);
-	u618 = basis + (0.618*dev);
-	u764 = basis + (0.764*dev); // between shigh adn u764 is sell zone
-end;
-if month(date) = 11 and Dayofmonth(date) = 28 Then
-	noTrade = true;
-vars: o_range(0), s_range(0);
-// measure the opening swing
-o_range = o_high - o_low;
-s_range = shigh - slow;
-var: ema20(0), emaX(0), exit_v(0);
-emaX = XAverage(close, emalen);
-ema20 = XAverage(close, 20);
-
-if time >= StartOpeningSession and time < EndOpeningSession then Begin
-
-    if Open > shigh and open > ema20 and ema20 > emaX Then
-    	buy ("open_higher_shigh") this bar on close;
-    {if Open < slow Then
-    	sell short ("open_lower_slow") this bar on close;	}
-
-end;
-
-if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
-
-	{TBDs}
-	// check lower wide stops aka lower lows in the Overnight session
-	// correlate this trend with the EMA 50 and observe
-	// opening action wrt to EMA 50 breach or hold.
-	// EMA50-shorts
-	// dates: 08/10/2018
-	// EMA50-longs
-	// dates: 08/17/2018, 08/21/2018, etc
-
-	if useOH_wide_highstop = true and o_low_wide_stop_long = false then Begin
-		if close crosses above wide_highstop_v + 2 then begin
-			//buy ("o_high_wide_stop") this bar on close;
-			//o_low_wide_stop_long = true;
-		end;
-	end;
-	{**** OPENING LOW DOES NOT TEST NEARBY PIVOT DURING OPENING SWING ***}
-	if o_low > dp and wide_lowstop_v > dp and LowSinceOpen > dp
-	Then
-	Begin
-		// buy the first test of the daily pivot
-		//buy ("dp_limit") next bar at dp+0.25 limit;
-		//dp_limit = true;
-	end;
-
-	{*** INSIDE case revert when shigh is higher than the opening high *** }
-    if shigh > o_high and slow < o_low  then begin
-    	// need to see a lower high stop
-    	if generic_lowstop_v > generic_lowstop_v[1]
-    		and close crosses above wide_highstop_v and wide_highstop = false Then
-    	begin
-    		buy ("wide_highstop_brk") this bar on close;
-    		wide_highstop = true;
-    	end;
-    	if useR2_lowstop = false and takeR3 and lzbrk_shoholsl = false
-    		and close crosses below dr3  and dr3 >= o_high then begin //and not r3_done
-           	sell short ("r3_shoholsl") at this bar;
-           	r3_shoholsl = true;
-        end;
-        if useS2_highstop = false and takeS3
-        	and close > close[1] and close crosses above ds3 + 1
-        	and ds3 <= o_low then begin // or limit
-        	buy ("s3_shoholsl") at this bar ;
-        	s3_shoholsl = true;
-        end;
-        // buy breakout only if high does not hold and o_high is not a threat either
-        if takeLzbrk = true and lzbrk_shoholsl = false
-        	and low crosses above o_high and close > o_high
-        	and o_high > dr2 then Begin
-        	buy ("lzbrk_shoholsl") at this bar;
-        	lzbrk_shoholsl = true;
-        end;
-        // if high in sell zone and by 11:00 there is no breakout
-        if takeSz and (u764 > dr1 and high > u764)
-        	and high crosses under o_high
-        	and (lzbrk_shoholsl = false and time >= 1100) then Begin
-        	sell short ("sz_shoholsl") at this bar;
-        end;
-
-		if useOL_wide_lowstop = true and fade_ohsholsl = false and o_low_wide_stop_long = false
-			and dp > o_low and ds1 >= o_low then Begin
-			if low crosses above wide_lowstop_v then begin
-				buy ("olow_wstop_shoholsl") this bar on close;
-				o_low_wide_stop_long = true;
-			end;
-		end;
-    end;
-	 // BREAKOUT: it might already be over by 730, bruh!
-	 // case breakout upside or fakeout when opening high trounces overnight high (shigh)
-    if shigh < o_high and slow < o_low then begin
-    	if close crosses under wide_lowstop_v
-    		and wide_lowstop_v > o_high Then
-    		sell short ("ohbrk_ohsholsl") this bar on close;
-
-   		if fadeOhigh = true Then
-   		Begin
-   			// did the opening swing close at o_high?
-   			if high = o_high and o_high >= dr3 - 3 //and close crosses under o_high
-   				Then begin
-   				sell short ("fadex_ohsholsl") next bar on dr3 - 3 stop;
-   				fade_ohsholsl = true;
-   			end;
-   		end;
-   		if useR2_lowstop = false and takeR3
-   			and close crosses below dr3 and dr3 >= o_high
-   			and HighSinceOpen <= dr3 + 3 // not a major break to dr3
-   			then begin
-           		sell short ("r3_ohsholsl") at this bar;//next bar o_high limit;
-           		r3_ohsholsl = true;
-        {end else Begin
-        	// in this case reverse course and buy at dr3
-        	if close crosses below dr3 and dr3 >= o_high and r3_brk_ohsholsl = false
-        	  and HighSinceOpen > dr3 + 3 then
-        		buy ("r3_brk_ohsholsl") at this bar;
-        		r3_brk_ohsholsl = true;}
-        end;
-
-        if useS2_highstop = false
-        	and takeS3 and low crosses above ds3 +1 and ds3 <= o_low then begin // or limit
-        	buy ("s3_ohsholsl") at this bar ;
-        	s3_ohsholsl = true;
-        end;
-    end;
-	// when opening low lower than overnight low and opening high lower than overnight high
-	// case: breakout to downside or fakeout
-    if shigh > o_high and slow > o_low then begin
-
-        // first check if r3 virgin test short works
-        if useR2_lowstop = false and takeR3
-        	and close crosses below dr3 and dr3 >= o_high
-   			and HighSinceOpen >= dr3 + 1 // no squeeze expected
-   			then begin
-           		sell short ("r3_shohslol") at this bar;
-           		r3_shohslol = true;
-        end;
-
-        // too agressive
-        {if close crosses under wide_lowstop_v and wide_lowstop_brk = false Then
-        begin
-        	sell short ("wide_lowstop_brk") this bar on close;
-        	wide_lowstop_brk = true;
-        end;}
-
-    end;
-     // case where both directions were squeezed!
-    if shigh < o_high and slow > o_low then begin
-    	// cross below dr3 only works if dr3 not substantially broken
-    	// how high did the ES break dr3?
-    	// where is the EMA and how was the overnight trend?
-    	if useR2_lowstop = false and takeR3
-    		and close crosses below dr3 and dr3 >= o_high
-   			and HighSinceOpen < dr3 + 3 // not major break of dr3
-    	then begin //and not r3_done
-        	sell short ("r3_ohshslol") at this bar;
-           	r3_ohshslol = true;
-        end else Begin
-        	// in this case reverse course and buy at dr3
-        	if close crosses below dr3 and dr3 >= o_high
-        	  and HighSinceOpen >= dr3 + 3 then
-        		buy ("r3_brk_ohshslol") at this bar;
-
-        end;
-
-       if useS2_highstop = false and takeS3 and low crosses above ds3 + 1  and ds3 <= o_low then begin // or limit
-        	buy ("s3_ohshslol") at this bar ;
-        	s3_ohshslol = true;
-        end;
-
-	end;
-	{TODO- cannot take this trade before 1100 if overnight trend was DOWN}
-	if useOL_wide_lowstop = true and fade_ohsholsl = false and o_low_wide_stop_long = false
-		and dp > o_low and ds1 >= o_low then Begin
-		if low crosses above wide_lowstop_v then begin
-			buy ("olow_wstop") this bar on close;
-			o_low_wide_stop_long = true;
-		end;
-		if low crosses above slow + 1
-			and (
-				(slow <= ds2 and low <= ds1) or
-				(slow <= ds3 and low <= ds2)
-				)
-			then begin
-			buy ("olow_slow") this bar on close;
-			o_low_wide_stop_long = true;
-		end;
-	end;
-	{// the stop needs to be tight based on testing this setup
-	if wide_lowstop_v <> -1 and emaX > ema20 and ema20 crosses under wide_lowstop_v Then
-   	begin
-   	 	sell short ("ema20_x_wlowstop") at this bar;
-   	 	ema20_x_wlowstop = true;
-   	 end;
-   	if wide_lowstop_v = -1 and emaX > ema20 and ema20 crosses under o_low Then
-   	begin
-   	 	sell short ("ema20_x_openlow") at this bar;
-   	 	ema20_x_openlow = true;
-   	end;}
-end;
-
-if time >= StartOpeningSession and time <= 1300 then begin
 	usePP_lowstop = false;
 	usePP_highstop = false;
 	useR2_lowstop = false;
@@ -390,158 +151,364 @@ if time >= StartOpeningSession and time <= 1300 then begin
 	useS2_lowstop = false;
 	useGeneric_highstop = false;
 	useGeneric_lowstop = false;
-	generic_highstop_v = 0;
-	generic_ema50_highstop_v = 0;
-	generic_lowstop_v = 0;
+	generic_lowstop_v = -2;
+	generic_highstop_v = -2;
+
 	usePP_wide_lowstop = false;
 	useOL_wide_lowstop = false;
 	useOH_wide_highstop = false;
-	useEma50_highstop = false;
-	useEma50_lowstop = false;
 
+	wide_highstop_v_barsago = -1;
+	wide_lowstop_v_barsago = -1;
+	wg_hstop = false;
+
+end
+else
+begin
+	if High > TodaysHigh then
+		TodaysHigh = High;
+	if Low < TodaysLow then
+		TodaysLow = Low;
+end;
+{globex swing block}
+if time < StartOpeningSession or Time >= StartGlobex Then
+Begin
+	If Low < slow then slow = Low;
+	If High >= shigh then shigh = High;
+end;
+
+if time >= StartOpeningSession and time < StartGlobex Then
+begin
+	if High > DayHigh then
+		DayHigh = High;
+	if Low < DayLow then
+		DayLow = Low;
+end Else // the globex swing block
+Begin
+	if PrevDayHigh = 0 and PrevDayLow = 9999 then
+	Begin
+		PrevDayHigh = High;
+		PrevDayLow = low;
+	end;
+end;
+
+{opening swing block}
+If Time >= StartOpeningSession and Time <= EndOpeningSession then begin
+	If Low < o_low then o_low = Low;
+	If High >= o_high then o_high = High;
+end;
+
+if time >= StartOpeningSession then Begin
+	basis = slow;
+	dev = shigh-slow;
+	u236 = basis + (0.236*dev); // between slow and u236 is buy zone
+	u382 = basis + (0.382*dev);
+	u5 = basis + (0.5*dev);
+	u618 = basis + (0.618*dev);
+	u764 = basis + (0.764*dev); // between shigh adn u764 is sell zone
+end;
+if month(date) = 11
+	and (
+		Dayofmonth(date) = 23 or
+		Dayofmonth(date) = 24 or
+		Dayofmonth(date) = 25 or
+		Dayofmonth(date) = 26 or
+		Dayofmonth(date) = 27 or
+		Dayofmonth(date) = 28
+		)
+	Then
+	noTrade = true;
+if month(date) = 12 and Dayofmonth(date) = 24 Then
+	noTrade = true;
+
+variables:
+intrabarpersist double ema10(0),
+intrabarpersist double ema20(0),
+intrabarpersist double ema200(0),
+intrabarpersist double ema300(0),
+intrabarpersist double ema100(0);
+
+ema10 = XAverage(close, 10);
+ema20 = XAverage(close, 20);
+ema100 = XAverage(close, 100);
+ema200 = XAverage(close, 200);
+ema300 = XAverage(close, 300);
+
+{always checking swing block}
+widest_highstop_v = SwingHigh(1, high, 72, 576);
+widest_lowstop_v = SwingLow(1, low, 72, 576);
+
+{****************** GLOBEX SESSION ENTRIES *****************}
+If Time >= StartGlobex or Time < StartOpeningSession then
+Begin
+	if open crosses above PrevDayHigh
+		and open > ema100
+		and open <= PrevDayHigh + 3
+		Then
+	Begin
+		//buy ("gopen_higher_dhigh") next bar at market;
+	end;
+end;
+
+{****************** DAY SESSION ENTRIES *****************}
+if time >= StartOpeningSession and time < 1230 then Begin
+	// break out of globex high is profitable
+    if Open crosses above shigh
+    	and open > ema100
+    	and open <= shigh + 4
+    	and shigh > ema200
+    	and open_higher_shigh = false
+    	then
+    begin
+    	buy ("open_higher_shigh") next bar at market;
+    	open_higher_shigh = true;
+ 	end;
+end;
+if noTrade = false and time >= EndOpeningSession and time <= 1230 then begin
+ // buy higher low, wide_histop breakout
+
+ // short lower high, wide_lowstop breakout
+
+end;
+
+if time >= StartOpeningSession and time <= 1300 then begin
 	{************S T O P S***************
 	*************************************}
-
 	// check if any new lows became a stop
-	var: stop_v (0), openBarsAgo(-1), wide_lowstop_v_barsago(-1), wide_highstop_v_barsago(-1);
-
 	openBarsAgo = FindBar(Date, StartOpeningSession);
 
-
 	// swinglow stops
-
-	// only compute the wide stop once per trading session
-	if wide_lowstop_v = -1 then begin
-		wide_lowstop_v = SwingLow(1, low, 5, 50);
-		// this stop must have been created by WallStreet traders
-		wide_lowstop_v_barsago = SwingLowBar(1, low, 5, 50);
-		if openBarsAgo = -1 or wide_lowstop_v_barsago = -1
-			or openBarsAgo < wide_lowstop_v_barsago Then
-			wide_lowstop_v = -1;
+	wide_lowstop_v = SwingLow(1, low, wideStopLen, 50);
+	// this stop must have been created by WallStreet traders
+	if wide_lowstop_v <> -1 then begin
+		wide_lowstop_v_barsago = SwingLowBar(1, low, wideStopLen, 50);
+	end Else begin
+		wide_lowstop_v_barsago = -1;
 	end;
 
-	if wide_lowstop_v <> -1 Then
-		generic_lowstop_v = wide_lowstop_v;
+	if openBarsAgo = -1 or wide_lowstop_v_barsago = -1
+		or openBarsAgo < wide_lowstop_v_barsago Then
+		wide_lowstop_v = -1;
+
+
 	if wide_lowstop_v <> -1 and wide_lowstop_v >= dp - 2 and wide_lowstop_v <= dp + 2 Then
 		usePP_wide_lowstop = true;
 	if wide_lowstop_v <> -1 and wide_lowstop_v >= o_low - 1 and wide_lowstop_v <= o_low + 1 Then
 		useOL_wide_lowstop = true;
 
 
-	stop_v = SwingLow(1, low, 2, 20);
-	if stop_v <> -1 and stop_v >= dr2 - 2 and stop_v <= dr2 + 2 Then
-		useR2_lowstop = true;
-	if stop_v <> -1 and stop_v >= dr3 - 2 and stop_v <= dr3 + 2 Then
-		useR3_lowstop = true;
-	if stop_v <> -1 and stop_v >= dp - 1 and stop_v <= dp + 1 Then
-		usePP_lowstop = true;
-	if stop_v <> -1 and stop_v >= ds1 - 2 and stop_v <= ds1 + 2 Then
-		useS1_lowstop = true;
-	if stop_v <> -1 and stop_v >= ds2 - 2 and stop_v <= ds2 + 2 Then
-		useS2_lowstop = true;
-	if stop_v <> -1 and stop_v >= shigh - 2 and stop_v <= shigh + 2 Then begin
-		useSH_lowstop = true;
-	end else if stop_v <> -1 then begin
+	stop_v = SwingLow(1, low, genericStopLen, 30);
+	if stop_v <> -1 then begin
+		stop_v_barsago = SwingLowBar(1, low, genericStopLen, 30);
 		useGeneric_lowstop = true;
-	end;
-	if useGeneric_lowstop = true Then
-	begin
 		generic_lowstop_v = stop_v;
-
+		generic_lowstop_v_barsago = stop_v_barsago;
 	end;
 
 	//swinghigh stops
-
-	// only compute the wide stop once per trading session
-	if wide_highstop_v = -1 then begin
-		wide_highstop_v = SwingHigh(1, high, 5, 50);
-		// this stop must have been created by WallStreet traders
-		wide_highstop_v_barsago = SwingHighBar(1, high, 5, 50);
-		if openBarsAgo = -1 or wide_highstop_v_barsago = -1
-			or openBarsAgo < wide_highstop_v_barsago Then
-			wide_highstop_v = -1;
+	wide_highstop_v = SwingHigh(1, high, wideStopLen, 50);
+	// this stop must have been created by WallStreet traders
+	if wide_highstop_v <> -1 then begin
+		wide_highstop_v_barsago = SwingHighBar(1, high, wideStopLen, 50);
+	end Else begin
+		wide_lowstop_v_barsago = -1;
 	end;
+	if openBarsAgo = -1 or wide_highstop_v_barsago = -1
+		or openBarsAgo < wide_highstop_v_barsago Then
+		wide_highstop_v = -1;
 
-	if wide_highstop_v <> -1 Then
-		generic_highstop_v = wide_highstop_v;
 	if wide_highstop_v <> -1 and wide_highstop_v >= dp - 2 and wide_highstop_v <= dp + 2 Then
 		usePP_wide_lowstop = true;
 	if wide_highstop_v <> -1 and wide_highstop_v >= o_high - 1 and wide_highstop_v <= o_high + 1 Then
 		useOH_wide_highstop = true;
 
-	stop_v = SwingHigh(1, high, 2, 10);
-	if stop_v <> -1 and stop_v >= ds1 - 3 and stop_v <= ds1 + 3 then begin
-		useS1_highstop = true;
-	end else if stop_v <> -1 and stop_v >= ds2 - 2 and stop_v <= ds2 + 2 then begin
-		useS2_highstop = true;
-	end else if stop_v <> -1 and stop_v >= dr3 - 2 and stop_v <= dr3 + 2 Then begin
-		useR3_highstop = true;
-	end else if stop_v <> -1 and stop_v >= dr2 - 2 and stop_v <= dr2 + 2 Then begin
-		useR2_highstop = true;
-	end else if stop_v <> -1 and stop_v >= dp - 1 and stop_v <= dp + 1 Then begin
-		usePP_highstop = true;
-	end else if stop_v <> -1 then begin
+	// overwrite 'wider' generic_highstop_v with regular generic_highstop_v
+	stop_v = SwingHigh(1, high, genericStopLen, 30);
+	stop_v_barsago = SwingHighBar(1, high, genericStopLen, 30);
+	if stop_v <> -1 then begin
 		useGeneric_highstop = true;
-	end;
-	if useGeneric_highstop = true Then
-	begin
 		generic_highstop_v = stop_v;
-
+		generic_highstop_v_barsago = stop_v_barsago;
 	end;
 
 
-	// swinghigh exits
-	if o_low_wide_stop_long = true and marketposition = 1 then
-	begin
-		// dont want LowSinceOpen breaching wide stop
-		if LowSinceOpen crosses under wide_lowstop_v then
-			sell ("lowerDayLow") this bar on close;
-	end;
+	vars: entryBarsAgo(0);
+	entryBarsAgo = FindBar(date, Entrytime(0));
 
-	if Marketposition = 1 then Begin
-		if generic_highstop_v[1] > 0 and
-			generic_highstop_v < generic_highstop_v[1]
-			then
-			sell ("llow") this bar on close;
-	end;
-	if Marketposition = 1 then Begin
-		if generic_highstop_v[1] <= 0 and generic_highstop_v >= dr3
-			and low crosses under dr3 then
-			sell ("dr3_stop") this bar on close;
-	end;
+	{***** ALL LONG EXITS HERE ************}
+	if Marketposition = 1 and useWideStops = true then
+	Begin
+	{if date = 1191220  and wide_highstop_v <> -1 then
+			Print(time,  "-wlstp[1]-",
+				wide_highstop_v[1], " : ", wide_highstop_v_barsago[1], "-wlstp-",
+				wide_highstop_v, " : ", wide_highstop_v_barsago, " < ", entryBarsAgo);
+		}
+		// a high WIDE stop formed after we entered, and then
+		// a new lower high WIDE stop formed after we entered
+		if wide_highstop_v[1] <> -1
+			and wide_highstop_v_barsago[1] < entryBarsAgo
+			and wide_highstop_v <> -1
+			and wide_highstop_v_barsago < entryBarsAgo
+			and wide_highstop_v < wide_highstop_v[1]
+			then begin
+			//Setdollartrailing(trailingStopLoss);
+			sell ("xs_ww_hstop") next bar at market;
 
-	// swinglow exits
-	{if ema20_x_wlowstop = true or ema20_x_openlow = true and marketposition = -1 then begin
-		if generic_lowstop_v[1] > 0 and
-			generic_lowstop_v > generic_lowstop_v[1] then
-			buy to cover  ("hhigh") this bar on close;
-	end;}
+			sell short("ww_hstop") next bar at market;
+			wg_hstop = true;
+		end;
+		// a wide high stop and a generic high stop both got created (different ones)
+		// and close crossed under the lower of the two..
+		if  wide_highstop_v <> -1
+			and wide_highstop_v_barsago <= entryBarsAgo
+			and generic_highstop_v <> -1
+			and generic_highstop_v_barsago <= entryBarsAgo
+			and generic_highstop_v <> wide_highstop_v
+			and open of data2 < minlist(generic_highstop_v, wide_highstop_v)
+			then begin
+			//Setdollartrailing(trailingStopLoss);
+			sell ("open_wg_hstop") next bar at market;
+			sell short("wg_hstop") next bar at market;
+			wg_hstop = true;
+		end;
+		// a high WIDE stop and a generic high stop and a lower generic high stop
+		if wide_highstop_v <> -1
+			and generic_highstop_v[1] <> -1 and generic_highstop_v_barsago[1] <= entryBarsAgo
+			and generic_highstop_v <> -1 and generic_highstop_v_barsago <= entryBarsAgo
+			and generic_highstop_v < generic_highstop_v[1]
+			and generic_highstop_v <= shigh
+			Then Begin
 
-	{** undesirable but necessary exit **}
-	if Marketposition = -1 then Begin
-		if low crosses under emaX + 2 then
-			buy to cover ("ema50") this bar on close;
-	end;
-	if Marketposition = -1 then Begin
-		if low crosses under dP + 1 then
-			buy to cover  ("dp") this bar on close;
-	end;
-	// note that our version of higher high is based on SwingLow
-	// it wont capture RIP UP behavior of the ES!
-	if Marketposition = -1 then Begin
-		if generic_highstop_v[1] > 0
-			and generic_highstop_v > generic_highstop_v[1]
-			then
-			buy to cover  ("h_highstop") this bar on close;
-	end;
+			sell ("lower_ggw_hstop") next bar at market;
+			//sell short("ggw_hstop") next bar at market;
+			//wg_hstop = true;
+		end;
 
-	if Marketposition = -1 then Begin
-		if low crosses under wide_lowstop_v Then
-			buy to cover ("x_wide_stop") next bar on open;
-	end;
-	if Marketposition = -1 then Begin
-		if low crosses under ds2 then Begin
-			buy to cover ("ds2_cover") this bar on close;
+		// a low WIDE stop was created after our entry and should not be breached
+		if  wide_lowstop_v <> -1
+			and wide_lowstop_v_barsago <= entryBarsAgo
+			and open of data2 crosses under wide_lowstop_v
+			then begin
+			//Setdollartrailing(trailingStopLoss);
+			sell ("xopen_nuw_Lstop") next bar at market;
+		end;
+		// a low WIDE stop existed before our entry and should not be breached
+		if  wide_lowstop_v <> -1
+			and wide_lowstop_v_barsago >= entryBarsAgo
+			and open of data2 crosses under wide_lowstop_v
+			then begin
+			//Setdollartrailing(trailingStopLoss);
+			sell ("xopen_exw_Lstop") next bar at market;
 		end;
 	end;
+	// super conservative stuff
+	if Marketposition = 1 and useGenericStops = true Then
+	begin
+		// an existing high stop was tested
+		if wide_highstop_v <> -1
+			and open crosses above wide_highstop_v
+			and entryBarsAgo > 0  then begin
+				sell ("xl_open_w_hstop") next bar at market;
+		end;
+		{if generic_highstop_v <> -1
+			and entryBarsAgo > 0 then
+				sell ("generic_hstop") next bar at generic_highstop_v - 1 limit;
+		}
+		// cutting profit shots also.. much safer/conervative
+		// this only if wide_highstop did not already catch
+		if generic_highstop_v <> -1 and entryBarsAgo <> -1
+				and generic_highstop_v_barsago < entryBarsAgo
+				then
+					sell ("generic_new_hstop") next bar at market;
+
+		// both high/low stops were created after entry
+		// and then close crossed under a low
+		if generic_highstop_v <> -1 and generic_lowstop_v <> -1
+				and generic_highstop_v_barsago < entryBarsAgo
+				and generic_lowstop_v_barsago < entryBarsAgo
+				and	close cross under generic_lowstop_v then
+					sell ("cllow") next bar at market;
+
+		{no generic stops used, only pivot and EMA stops}
+		// only a low stop was present before/after entry
+		// and then close crossed under it AND resisted by ema20
+		if generic_lowstop_v <> -1
+			and open crosses under ema20
+			and	close cross under generic_lowstop_v then
+				sell ("llow_ema20") next bar at market;
+
+	end;
+
+	{***** ALL SHORT EXITS HERE ************}
+	if Marketposition = -1  and useWideStops = true then
+	Begin
+		{if date = 1191226 and time = 0920 then
+			Print(time,
+				"-generic_lowstop_v-", generic_lowstop_v,
+				"-low2-", low of data2);
+		}
+
+		if wg_hstop = true
+			and generic_lowstop_v_barsago <= entrybarsago
+			and
+				(low of data2 crosses under shigh + 2 Or
+				low of data2 crosses under generic_lowstop_v + 2)
+			then Begin
+
+			buy to cover("x_wg_hstop") next bar at market;
+		end;
+
+
+		// a HIGHER wide low stop was established
+		// and close crossed above it
+		if wide_lowstop_v <> -1
+			and wide_lowstop_v_barsago < entryBarsAgo
+			and wide_lowstop_v[1] <> -1
+			and wide_lowstop_v_barsago[1] < entryBarsAgo
+			and wide_lowstop_v > wide_lowstop_v[1]
+			then
+		begin
+			//Setdollartrailing(trailingStopLoss);
+			buy to cover ("xs_ww_lowstop") next bar at market;
+		end else
+		if  wide_lowstop_v <> -1
+			and wide_lowstop_v_barsago < entryBarsAgo
+			and generic_lowstop_v <> -1
+			and generic_lowstop_v_barsago < entryBarsAgo
+			and close crosses under generic_lowstop_v
+			then begin
+			//Setdollartrailing(trailingStopLoss);
+			buy to cover ("xclose_wg_lstop") next bar at market;
+		end;
+
+	end;
+	if Marketposition = -1 and useGenericStops = true then
+	Begin
+		if generic_lowstop_v <> -1
+		and generic_lowstop_v_barsago < entryBarsAgo
+		then
+			sell ("generic_new_lstop") next bar at market;
+		// an existing lowstop could be tested
+		if wide_lowstop_v <> -1
+			and low crosses below wide_lowstop_v
+			  then
+		begin
+			buy to cover ("xs_low_w_lowstop") next bar at market;
+		end else
+		// an existing lowstop could be tested, different way
+		if wide_lowstop_v <> -1
+			and open crosses below wide_lowstop_v
+			  then
+		begin
+			buy to cover ("xsop_w_lowstop") next bar at market;
+		end;
+		// ds2
+		if Marketposition = -1 then Begin
+			if low crosses under ds2 then Begin
+				buy to cover ("ds2_cover") next bar at market;
+			end;
+		end;
+	end;
+
+
 end;
