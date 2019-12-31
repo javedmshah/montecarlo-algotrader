@@ -1,4 +1,5 @@
 inputs:
+	int orange(RGB(255,165,0)),
 	showGlobex			(true),
 	showOpening			(true),
 	StartGlobex			(1500),
@@ -7,38 +8,84 @@ inputs:
 	EndOpeningSession	(0730);
 
 vars: shigh(0), slow(9999), o_high(0), o_low(9999), CurrSess(0),
- oh(0), ol(0), sh(0), sl(0), wide_lowstop_v(-1), wide_highstop_v (-1);
+ oh(0), ol(0), sh(0), sl(0),
+ intrabarpersist double wide_lowstop_v(-1),
+ intrabarpersist double wide_highstop_v (-1);
 
 variables:
 	intrabarpersist int BT( 0 );
 
+variables:
+	intrabarpersist double stop_v(-1),
+	intrabarpersist double openBarsAgo(-1),
+	intrabarpersist double wide_lowstop_v_barsago(-1),
+	intrabarpersist double wide_highstop_v_barsago(-1),
+	intrabarpersist double generic_highstop_v(0),
+	intrabarpersist double generic_lowstop_v(0),
+	intrabarpersist double widest_lowstop_v(0),
+	intrabarpersist double widest_highstop_v(0);
+
 vars: basis(0), dev(0), u236(0), u382(0), u5(0), u618(0), u764(0),
-HighSinceOpen(0), LowSinceOpen(9999);
+intrabarpersist double PrevDayHigh(0),
+intrabarpersist double PrevDayLow(9999),
+intrabarpersist double DayHigh(0),
+intrabarpersist double DayLow(9999);
 CurrSess = CurrentSession( 0 );
 if CurrSess <> CurrSess[1] then
 Begin
 	o_high = 0;
-	o_low = 999999;
+	o_low = 9999;
 	shigh = 0;
-	slow = 999999;
+	slow = 9999;
 	wide_lowstop_v = -1;
 	wide_highstop_v = -1;
-	LowSinceOpen = 9999;
-	HighSinceOpen = 0;
+	PrevDayHigh = DayHigh;
+	PrevDayLow = DayLow;
+	DayHigh = 0;
+	DAyLow = 9999;
 	if BT <> 2 then
    	begin
+   		SetPlotColor[1]( 17, Transparent );
+   		SetPlotColor[1]( 18, Transparent );
    		SetPlotColor[1]( 19, Transparent );
    		SetPlotColor[1]( 20, Transparent );
    		SetPlotColor[1]( 21, Transparent );
    		SetPlotColor[1]( 22, Transparent );
-
+   		SetPlotColor[1]( 23, Transparent );
  	end;
-End;
+end;
+if time >= StartOpeningSession and time < StartGlobex Then
+begin
+	if High > DayHigh then
+		DayHigh = High;
+	if Low < DayLow then
+		DayLow = Low;
+end Else // the globex swing block
+Begin
+	if PrevDayHigh = 0 and PrevDayLow = 9999 then
+	Begin
+		PrevDayHigh = High;
+		PrevDayLow = low;
+	end;
+
+	Plot23(PrevDayLow, "DAY_LOW", cyan);
+	Plot26(PrevDayHigh, "DAY_HIGH", cyan);
+end;
+
+
 vars: open_d(0);
 
+{always checking swing block}
+widest_highstop_v = SwingHigh(1, high, 144, 576);
+if widest_highstop_v <> -1 then
+	Plot24(widest_highstop_v, "WIDEST_highstop", Darkred);
+
+widest_lowstop_v = SwingLow(1, low, 144, 576);
+if widest_lowstop_v <> -1 then
+	Plot25(widest_lowstop_v, "WIDEST_lowstop", yellow);
 
 {globex swing block}
-If Time >= StartGlobex or Time < StartOpeningSession then begin
+If Time < StartOpeningSession or Time >= StartGlobex then begin
 	If Low < slow then slow = Low;
 	If High >= shigh then shigh = High;
 end;
@@ -47,12 +94,7 @@ If Time >= StartOpeningSession and Time <= EndOpeningSession then begin
 	If Low < o_low then o_low = Low;
 	If High >= o_high then o_high = High;
 end;
-if time >= StartOpeningSession and time < StartGlobex then Begin
-	if High > HighSinceOpen then
-		HighSinceOpen = High;
-	if Low < LowSinceOpen then
-		LowSinceOpen = Low;
-end;
+
 if time >= StartOpeningSession then Begin
 	basis = slow;
 	dev = shigh-slow;
@@ -62,14 +104,13 @@ if time >= StartOpeningSession then Begin
 	u618 = basis + (0.618*dev);
 	u764 = basis + (0.764*dev); // between shigh adn u764 is sell zone
 end;
-if Time > EndOpeningSession and Time <= StartGlobex then begin
+if Time > StartOpeningSession and Time <= StartGlobex then begin
 	//Plot1(u764, "u764", Yellow);
 	//Plot2(u618, "u618", Yellow);
 	//Plot3(u5, "u5", Yellow);
 	//Plot4(u382, "u382", Yellow);
 	//Plot5(u236, "u236", Yellow);
 
-	vars: stop_v(-1), openBarsAgo(-1), wide_lowstop_v_barsago(-1), wide_highstop_v_barsago(-1);
 
 	openBarsAgo = FindBar(Date, StartOpeningSession);
 
@@ -77,9 +118,9 @@ if Time > EndOpeningSession and Time <= StartGlobex then begin
 	 //if shigh_lowstop <> -1 and shigh_lowstop >= shigh - 2 and shigh_lowstop <= shigh + 2 Then
 	//	Plot13(shigh_lowstop, "shighlow", green);
 	// only compute the wide stop once per trading session
-	if wide_lowstop_v = -1 then
-		wide_lowstop_v = SwingLow(1, low, 5, 50);
-	wide_lowstop_v_barsago = SwingLowBar(1, low, 5, 50);
+
+	wide_lowstop_v = SwingLow(1, low, 4, 50);
+	wide_lowstop_v_barsago = SwingLowBar(1, low, 4, 50);
 	if openBarsAgo = -1 or wide_lowstop_v_barsago = -1
 		or openBarsAgo < wide_lowstop_v_barsago Then
 		wide_lowstop_v = -1;
@@ -87,9 +128,9 @@ if Time > EndOpeningSession and Time <= StartGlobex then begin
 	if wide_lowstop_v <> -1	then
 		PLot17(wide_lowstop_v, "wide_lowstop_v", green);
 
-	if wide_highstop_v = -1 then
-		wide_highstop_v = SwingHigh(1, high, 5, 50);
-	wide_highstop_v_barsago = SwingHighBar(1, high, 5, 50);
+
+	wide_highstop_v = SwingHigh(1, high, 4, 50);
+	wide_highstop_v_barsago = SwingHighBar(1, high, 4, 50);
 	if openBarsAgo = -1 or wide_highstop_v_barsago = -1
 		or openBarsAgo < wide_highstop_v_barsago Then
 		wide_highstop_v = -1;
@@ -101,6 +142,23 @@ if Time > EndOpeningSession and Time <= StartGlobex then begin
 	Plot20(o_low, "open_low", darkcyan);
 	Plot21(shigh, "globex_high", yellow);
 	Plot22(slow, "globex_low", yellow);
+	// low stops
+	stop_v = SwingLow(1, low, 2, 20);
+	if stop_v <> -1 then begin
+	// print any stop now..
+		generic_lowstop_v = stop_v;
+	end;
+	if generic_lowstop_v <> -1 then
+		PLot6(generic_lowstop_v, "generic_lowstop", green);
+
+	// high stops
+	stop_v = SwingHigh(1, high, 2, 10);
+	if stop_v <> -1 then begin
+	// print any stop now..
+		generic_highstop_v = stop_v;
+	end;
+	if generic_highstop_v <> -1 then
+		PLot7(generic_highstop_v, "generic_highstop", red);
 
 	{if showOpening then
 	begin
@@ -117,8 +175,4 @@ if Time > EndOpeningSession and Time <= StartGlobex then begin
 		TL_setcolor(sl, yellow);
 	end;}
 
-end;
-if time >= EndOpeningSession and Time < StartGlobex Then
-Begin
-	Plot23(LowSinceOpen, "lowSinceOpen", cyan);
-end;
+end;	
